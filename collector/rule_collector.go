@@ -10,9 +10,9 @@ import (
 
 // A RuleCollector implements the prometheus.Collector.
 type RuleCollector struct {
-	metrics                   map[string]ruleMetric
-	bigip                     *f5.Device
-	partitionsList           []string
+	metrics                 map[string]ruleMetric
+	bigip                   *f5.Device
+	partitionsList          []string
 	collectorScrapeStatus   *prometheus.GaugeVec
 	collectorScrapeDuration *prometheus.SummaryVec
 }
@@ -29,6 +29,15 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 		subsystem  = "rule"
 		labelNames = []string{"partition", "rule", "event"}
 	)
+
+	// Add additional labels specified in config
+	if deviceGroup != "" {
+		labelNames = append(labelNames, "device_group")
+	}
+	if useDeviceName {
+		labelNames = append(labelNames, "device_name")
+	}
+
 	return &RuleCollector{
 		metrics: map[string]ruleMetric{
 			"priority": {
@@ -132,7 +141,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 			},
 			[]string{"collector"},
 		),
-		bigip:           bigip,
+		bigip:          bigip,
 		partitionsList: partitionsList,
 	}, nil
 }
@@ -159,6 +168,15 @@ func (c *RuleCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 
 			labels := []string{partition, ruleName, event}
+
+			// Add additional labels specified in config
+			if deviceGroup != "" {
+				labels = append(labels, deviceGroup)
+			}
+			if useDeviceName {
+				labels = append(labels, deviceName)
+			}
+
 			for _, metric := range c.metrics {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(ruleStats.NestedStats.Entries), labels...)
 			}

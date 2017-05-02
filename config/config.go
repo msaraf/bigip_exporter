@@ -23,6 +23,8 @@ type exporterConfig struct {
 	Partitions  string `yaml:"partitions"`
 	Config      string `yaml:"config"`
 	Namespace   string `yaml:"namespace"`
+	DeviceGroup string `yaml:"device_group"`
+	DeviceName  bool   `yaml:"device_name"`
 	LogLevel    string `yaml:"log_level"`
 }
 
@@ -68,6 +70,8 @@ func registerFlags() {
 	flag.String("exporter.partitions", "", "A comma separated list of partitions which to export. (default: all)")
 	flag.String("exporter.config", "", "bigip_exporter configuration file name.")
 	flag.String("exporter.namespace", "bigip", "bigip_exporter namespace.")
+	flag.String("exporter.device_group", "", "Name of the HA device group. (default: empty)")
+	flag.Bool("exporter.device_name", false, "Add label with device name.")
 	flag.String("exporter.log_level", "info", "Available options are trace, debug, info, warning, error and critical")
 }
 
@@ -122,6 +126,8 @@ func GetConfig() *Config {
 			Partitions:  viper.GetString("exporter.partitions"),
 			Config:      viper.GetString("exporter.config"),
 			Namespace:   viper.GetString("exporter.namespace"),
+			DeviceGroup: viper.GetString("exporter.device_group"),
+			DeviceName:  viper.GetBool("exporter.device_name"),
 			LogLevel:    viper.GetString("exporter.log_level"),
 		},
 	}

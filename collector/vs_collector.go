@@ -10,9 +10,9 @@ import (
 
 // A VSCollector implements the prometheus.Collector.
 type VSCollector struct {
-	metrics                   map[string]vsMetric
-	bigip                     *f5.Device
-	partitionsList           []string
+	metrics                 map[string]vsMetric
+	bigip                   *f5.Device
+	partitionsList          []string
 	collectorScrapeStatus   *prometheus.GaugeVec
 	collectorScrapeDuration *prometheus.SummaryVec
 }
@@ -29,6 +29,15 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitionsList []string)
 		subsystem  = "vs"
 		labelNames = []string{"partition", "vs"}
 	)
+
+	// Add additional labels specified in config
+	if deviceGroup != "" {
+		labelNames = append(labelNames, "device_group")
+	}
+	if useDeviceName {
+		labelNames = append(labelNames, "device_name")
+	}
+
 	return &VSCollector{
 		metrics: map[string]vsMetric{
 			"syncookie_accepts": {
@@ -471,7 +480,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitionsList []string)
 			},
 			[]string{"collector"},
 		),
-		bigip:           bigip,
+		bigip:          bigip,
 		partitionsList: partitionsList,
 	}, nil
 }
@@ -496,6 +505,15 @@ func (c *VSCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 
 			labels := []string{partition, vsName}
+
+			// Add additional labels specified in config
+			if deviceGroup != "" {
+				labels = append(labels, deviceGroup)
+			}
+			if useDeviceName {
+				labels = append(labels, deviceName)
+			}
+
 			for _, metric := range c.metrics {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(virtualStats.NestedStats.Entries), labels...)
 			}

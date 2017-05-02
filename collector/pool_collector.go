@@ -10,9 +10,9 @@ import (
 
 // A PoolCollector implements the prometheus.Collector.
 type PoolCollector struct {
-	metrics                   map[string]poolMetric
-	bigip                     *f5.Device
-	partitionsList           []string
+	metrics                 map[string]poolMetric
+	bigip                   *f5.Device
+	partitionsList          []string
 	collectorScrapeStatus   *prometheus.GaugeVec
 	collectorScrapeDuration *prometheus.SummaryVec
 }
@@ -29,6 +29,15 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitionsList []strin
 		subsystem  = "pool"
 		labelNames = []string{"partition", "pool"}
 	)
+
+	// Add additional labels specified in config
+	if deviceGroup != "" {
+		labelNames = append(labelNames, "device_group")
+	}
+	if useDeviceName {
+		labelNames = append(labelNames, "device_name")
+	}
+
 	return &PoolCollector{
 		metrics: map[string]poolMetric{
 			"connqAll_ageMax": {
@@ -339,7 +348,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitionsList []strin
 			},
 			[]string{"collector"},
 		),
-		bigip:           bigip,
+		bigip:          bigip,
 		partitionsList: partitionsList,
 	}, nil
 }
@@ -364,6 +373,15 @@ func (c *PoolCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 
 			labels := []string{partition, poolName}
+
+			// Add additional labels specified in config
+			if deviceGroup != "" {
+				labels = append(labels, deviceGroup)
+			}
+			if useDeviceName {
+				labels = append(labels, deviceName)
+			}
+
 			for _, metric := range c.metrics {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(poolStats.NestedStats.Entries), labels...)
 			}

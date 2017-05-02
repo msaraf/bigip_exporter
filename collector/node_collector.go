@@ -10,9 +10,9 @@ import (
 
 // A NodeCollector implements the prometheus.Collector.
 type NodeCollector struct {
-	metrics                   map[string]nodeMetric
-	bigip                     *f5.Device
-	partitionsList           []string
+	metrics                 map[string]nodeMetric
+	bigip                   *f5.Device
+	partitionsList          []string
 	collectorScrapeStatus   *prometheus.GaugeVec
 	collectorScrapeDuration *prometheus.SummaryVec
 }
@@ -29,6 +29,15 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 		subsystem  = "node"
 		labelNames = []string{"partition", "node"}
 	)
+
+	// Add additional labels specified in config
+	if deviceGroup != "" {
+		labelNames = append(labelNames, "device_group")
+	}
+	if useDeviceName {
+		labelNames = append(labelNames, "device_name")
+	}
+
 	return &NodeCollector{
 		metrics: map[string]nodeMetric{
 			"serverside_bytesOut": {
@@ -171,7 +180,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 			},
 			[]string{"collector"},
 		),
-		bigip:           bigip,
+		bigip:          bigip,
 		partitionsList: partitionsList,
 	}, nil
 }
@@ -179,6 +188,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 // Collect collects metrics for BIG-IP nodes.
 func (c *NodeCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
+
 	err, allNodeStats := c.bigip.ShowAllNodeStats()
 	if err != nil {
 		c.collectorScrapeStatus.WithLabelValues("node").Set(float64(0))
@@ -196,6 +206,15 @@ func (c *NodeCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 
 			labels := []string{partition, nodeName}
+
+			// Add additional labels specified in config
+			if deviceGroup != "" {
+				labels = append(labels, deviceGroup)
+			}
+			if useDeviceName {
+				labels = append(labels, deviceName)
+			}
+
 			for _, metric := range c.metrics {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(nodeStats.NestedStats.Entries), labels...)
 			}

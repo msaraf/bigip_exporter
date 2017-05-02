@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ExpressenAB/bigip_exporter/config"
 	"github.com/juju/loggo"
 	"github.com/pr8kerl/f5er/f5"
 	"github.com/prometheus/client_golang/prometheus"
@@ -11,12 +12,15 @@ import (
 
 // A BigipCollector implements the prometheus.Collector.
 type BigipCollector struct {
-	collectors            map[string]prometheus.Collector
+	collectors          map[string]prometheus.Collector
 	totalScrapeDuration prometheus.Summary
 }
 
 var (
-	logger = loggo.GetLogger("")
+	logger        = loggo.GetLogger("")
+	deviceGroup   = config.GetConfig().Exporter.DeviceGroup
+	useDeviceName = config.GetConfig().Exporter.DeviceName
+	deviceName    = config.GetConfig().Bigip.Host
 )
 
 // NewBigipCollector returns a collector that wraps all the collectors
